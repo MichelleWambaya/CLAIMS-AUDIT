@@ -144,6 +144,18 @@ class RuleConfigUpdate(BaseModel):
     config: dict
 
 
+@router.get("/config")
+def get_rule_config(session_id: str, db: Session = Depends(get_db),
+                     user: User = Depends(get_current_user)):
+    row = db.query(RuleConfigRow).filter(RuleConfigRow.audit_session_id == session_id).first()
+    if row:
+        return {"config": row.config_json}
+    # No override saved yet — return the code defaults so the admin UI
+    # has something to show and edit from.
+    from dataclasses import asdict
+    return {"config": asdict(DEFAULT_CONFIG)}
+
+
 @router.put("/config", dependencies=[Depends(require_admin)])
 def update_rule_config(session_id: str, body: RuleConfigUpdate, db: Session = Depends(get_db),
                         user: User = Depends(get_current_user)):
