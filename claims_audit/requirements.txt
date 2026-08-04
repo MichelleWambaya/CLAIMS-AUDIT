@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pyjwt
+passlib[bcrypt]
+bcrypt<4.0.0
+python-multipart
+requests
+openpyxl
+python-pptx
+reportlab
+
+# Background job queue (swap in for FastAPI BackgroundTasks in production)
+redis
+rq

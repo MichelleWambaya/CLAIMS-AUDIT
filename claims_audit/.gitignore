@@ -1,0 +1,25 @@
+# --- Python ---
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# --- Env / secrets ---
+.env
+
+# --- OS / editor ---
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# --- Generated report artifacts (never commit exports) ---
+demo/*.pptx
+demo/*.pdf
+demo/*.xlsx
+demo/*.jpg
