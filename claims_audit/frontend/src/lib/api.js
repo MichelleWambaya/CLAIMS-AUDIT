@@ -22,6 +22,11 @@ export const api = {
     const form = new URLSearchParams({ username: email, password });
     return fetch(`${BASE}/auth/login`, { method: "POST", body: form }).then((r) => r.json());
   },
+  signup: (email, password, displayName) =>
+    request("/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password, display_name: displayName }),
+    }),
   listSessions: () => request("/sessions"),
   createSession: (name) => request("/sessions", { method: "POST", body: JSON.stringify({ name }) }),
   triggerSync: (sessionId, driveId, folderPath) =>

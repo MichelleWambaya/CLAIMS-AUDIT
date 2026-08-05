@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { api } from "../lib/api";
 
 export default function LoginPage({ onLoggedIn }) {
+  const [mode, setMode] = useState("login"); // "login" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -12,15 +14,23 @@ export default function LoginPage({ onLoggedIn }) {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await api.login(email, password);
+      const result =
+        mode === "login"
+          ? await api.login(email, password)
+          : await api.signup(email, password, displayName);
+
       if (!result.access_token) {
-        throw new Error(result.detail || "Login failed");
+        throw new Error(result.detail || `${mode === "login" ? "Login" : "Signup"} failed`);
       }
       localStorage.setItem("aar_token", result.access_token);
       localStorage.setItem("aar_role", result.role);
       onLoggedIn();
     } catch (err) {
-      setError("Incorrect email or password.");
+      setError(
+        mode === "login"
+          ? "Incorrect email or password."
+          : "Couldn't create that account — the email may already be in use, or the password may be too short (minimum 8 characters)."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -35,8 +45,18 @@ export default function LoginPage({ onLoggedIn }) {
         <div className="brand" style={{ marginBottom: 24 }}>
           AAR <span>Audit</span>
         </div>
-        <h3 style={{ marginBottom: 16 }}>Sign in</h3>
+        <h3 style={{ marginBottom: 16 }}>{mode === "login" ? "Sign in" : "Create account"}</h3>
 
+        {mode === "signup" && (
+          <input
+            type="text"
+            placeholder="Your name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+            style={fieldStyle}
+          />
+        )}
         <input
           type="email"
           placeholder="Email"
@@ -51,38 +71,46 @@ export default function LoginPage({ onLoggedIn }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          minLength={mode === "signup" ? 8 : undefined}
           style={fieldStyle}
         />
+        {mode === "signup" && (
+          <div style={{ fontSize: 12, color: "#777", marginTop: -6, marginBottom: 12 }}>
+            Minimum 8 characters. The very first account created on this deployment
+            automatically becomes admin.
+          </div>
+        )}
 
         {error && (
           <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 12 }}>{error}</div>
         )}
 
         <button className="pill-button active" type="submit" disabled={submitting} style={{ width: "100%" }}>
-          {submitting ? "Signing in…" : "Sign In"}
+          {submitting
+            ? (mode === "login" ? "Signing in…" : "Creating account…")
+            : (mode === "login" ? "Sign In" : "Create Account")}
         </button>
 
-        <div style={{ borderTop: "1px solid #e6e6e6", marginTop: 20, paddingTop: 16 }}>
-          <button
-            type="button"
-            className="pill-button"
-            style={{ width: "100%" }}
-            onClick={() => {
-              // DEV-ONLY BYPASS: fakes a logged-in frontend state so the
-              // app shell/navigation can be exercised while the real
-              // backend auth is still being wired up. Any actual API call
-              // still goes to the real backend and gets a real 401/500
-              // until that's genuinely working — this button doesn't
-              // touch the backend's auth checks at all, it only skips
-              // the frontend's login gate. Remove this button before
-              // sharing this app with anyone else.
-              localStorage.setItem("aar_token", "dev-bypass-token");
-              localStorage.setItem("aar_role", "admin");
-              onLoggedIn();
-            }}
-          >
-            Continue without login (dev only)
-          </button>
+        <div style={{ borderTop: "1px solid #e6e6e6", marginTop: 20, paddingTop: 16, textAlign: "center" }}>
+          {mode === "login" ? (
+            <button
+              type="button"
+              className="pill-button"
+              style={{ width: "100%" }}
+              onClick={() => { setMode("signup"); setError(null); }}
+            >
+              Need an account? Sign up
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="pill-button"
+              style={{ width: "100%" }}
+              onClick={() => { setMode("login"); setError(null); }}
+            >
+              Already have an account? Sign in
+            </button>
+          )}
         </div>
       </form>
     </div>
