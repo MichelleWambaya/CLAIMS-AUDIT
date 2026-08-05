@@ -1,4 +1,4 @@
-# version: "3.9"
+version: "3.9"
 
 services:
   db:
@@ -38,7 +38,7 @@ services:
     environment:
       DATABASE_URL: postgresql://claims_audit:${POSTGRES_PASSWORD}@db:5432/claims_audit
       REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in your .env file — see .env.example for how to generate one}
       JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-480}
       ALLOW_SELF_SIGNUP: ${ALLOW_SELF_SIGNUP:-true}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}

@@ -1,12 +1,14 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from api.config import settings
 from api.db import get_db
 from api.models import AuditSession, SourceFile, User
+from api.queue import default_queue
 from auth.security import get_current_user
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -37,37 +39,32 @@ def list_sessions(db: Session = Depends(get_db), user: User = Depends(get_curren
 
 
 @router.post("/{session_id}/sync")
-def trigger_sync(session_id: str, body: SyncRequest, background_tasks: BackgroundTasks,
+def trigger_sync(session_id: str, body: SyncRequest,
                   db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """
-    Kicks off a OneDrive/SharePoint delta sync for this session. In
-    production this enqueues a job onto the background worker queue
-    (RQ/Celery) rather than FastAPI's BackgroundTasks, which doesn't
-    survive a process restart — swap the call below for `queue.enqueue(...)`
-    once the queue is wired up; the ingest.sync_audit_session function
-    itself doesn't change either way.
+    Kicks off a OneDrive/SharePoint delta sync for this session using the
+    app-only Graph connector (ingestion path 1 of 3 — see also
+    /link-sync for the share-link path and /ms-oauth for delegated OAuth).
+    Runs as a real RQ background job so it survives a process restart and
+    doesn't block this request for a large folder.
     """
     session = db.query(AuditSession).filter(AuditSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    import os
-    missing_env = [v for v in ("MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET") if not os.environ.get(v)]
-    if missing_env:
+    if not settings.graph_app_only_configured():
         raise HTTPException(
             status_code=503,
-            detail=f"OneDrive sync isn't configured yet — missing environment variable(s): "
-                    f"{', '.join(missing_env)}. Use the Upload form instead until this is set up.",
+            detail="The app-only OneDrive/SharePoint connector isn't configured on this deployment "
+                   "(missing MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET). Use manual upload, the "
+                   "share-link sync, or ask an admin to register an Azure AD app and set those "
+                   "environment variables.",
         )
 
-    from sync.ingest import sync_audit_session
-    from sync.graph_client import GraphClient
-    from api.session_store import SqlAlchemySessionStore  # adapter implementing sync.ingest.SessionStore
-
-    graph = GraphClient()
-    store = SqlAlchemySessionStore(db)
-    background_tasks.add_task(
-        sync_audit_session, store, graph, session_id, body.drive_id, body.folder_path
+    from api.jobs import run_graph_sync_job
+    default_queue.enqueue(
+        run_graph_sync_job, session_id, body.drive_id, body.folder_path,
+        job_timeout="2h",
     )
     return {"status": "sync_started"}
 

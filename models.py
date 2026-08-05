@@ -135,6 +135,43 @@ class RuleConfigRow(Base):
     updated_at = Column(DateTime, default=datetime.utcnow)
 
 
+class RuleConfigHistory(Base):
+    __tablename__ = "rule_config_history"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    audit_session_id = Column(UUID(as_uuid=True), ForeignKey("audit_sessions.id"), nullable=False)
+    changed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    previous_json = Column(JSONB, nullable=False)
+    new_json = Column(JSONB, nullable=False)
+    changed_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ColumnAlias(Base):
+    __tablename__ = "column_aliases"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    canonical_field = Column(String, nullable=False)
+    alias = Column(String, nullable=False)
+
+
+class NonPayableKeyword(Base):
+    __tablename__ = "non_payable_keywords"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    category = Column(String, nullable=False)
+    keyword = Column(String, nullable=False)
+    added_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MsOAuthToken(Base):
+    __tablename__ = "ms_oauth_tokens"
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
+    access_token = Column(Text, nullable=False)
+    refresh_token = Column(Text, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    scope = Column(String, nullable=True)
+    connected_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+
 class AccessLog(Base):
     __tablename__ = "access_log"
     id = Column(BigInteger, primary_key=True, autoincrement=True)

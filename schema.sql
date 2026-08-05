@@ -2,6 +2,11 @@
 -- Reflects: merged dataset per session, OneDrive-sourced ingestion,
 -- stored (not just downloaded) dashboards/presentations, audit trail,
 -- config history.
+--
+-- Every statement below is idempotent (IF NOT EXISTS) so this file can be
+-- executed automatically on every app startup, safely, any number of times.
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -172,6 +177,18 @@ CREATE TABLE IF NOT EXISTS generated_reports (
     ready_at            TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_reports_session ON generated_reports(audit_session_id, created_at DESC);
+
+-- Delegated OAuth tokens for the "Connect your Microsoft account"
+-- ingestion path (path 2 of 3) — one row per user who has connected.
+CREATE TABLE IF NOT EXISTS ms_oauth_tokens (
+    user_id        UUID PRIMARY KEY REFERENCES users(id),
+    access_token   TEXT NOT NULL,
+    refresh_token  TEXT NOT NULL,
+    expires_at     TIMESTAMPTZ NOT NULL,
+    scope          TEXT,
+    connected_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- Data-access audit log (health-claims data — required, §10).
 CREATE TABLE IF NOT EXISTS access_log (
