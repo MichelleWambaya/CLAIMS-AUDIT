@@ -23,15 +23,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(sessions.router)
-app.include_router(flags.router)
-app.include_router(saved_views.router)
-app.include_router(reports.router)
-app.include_router(admin.router)
-app.include_router(upload.router)
-app.include_router(link_sync.router)
-app.include_router(ms_oauth.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(sessions.router, prefix="/api")
+app.include_router(flags.router, prefix="/api")
+app.include_router(saved_views.router, prefix="/api")
+app.include_router(reports.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
+app.include_router(upload.router, prefix="/api")
+app.include_router(link_sync.router, prefix="/api")
+app.include_router(ms_oauth.router, prefix="/api")
 
 
 @app.on_event("startup")
